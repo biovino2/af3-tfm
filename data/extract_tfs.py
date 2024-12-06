@@ -57,33 +57,48 @@ def subset_tfs(tf_info: pd.DataFrame, tfs: list[str]) -> pd.DataFrame:
     tf_subset = tf_subset[["Motif_ID", "DBID", "TF_Name"]]
 
     return tf_subset
+    
 
-
-def fetch_protein_sequence(protein_id, format="fasta"):
+def fetch_canonical_protein(gene_id) -> str:
     """
-    Fetch protein sequence from Ensembl REST API.
+    Fetch the canonical protein sequence for a given Ensembl gene ID.
     
     Args:
-        protein_id (str): Ensembl protein ID (e.g., ENSP*).
-        format (str): Output format ('fasta' or 'text').
+        gene_id (str): Ensembl gene ID (ENSG*).
     
     Returns:
-        str: Protein sequence in the specified format.
+        str: Canonical protein sequence in FASTA format.
     """
 
-    url = f"https://rest.ensembl.org/sequence/id/{protein_id}"
-    params = {"type": "protein", "multiple_sequences": "1"}
-    headers = {"Content-Type": f"text/x-{format}"}
-    response = requests.get(url, headers=headers, params=params)
+    print(gene_id)
+
+    # Step 1: Get the canonical transcript
+    url_lookup = f"https://rest.ensembl.org/lookup/id/{gene_id}"
+    headers = {"Content-Type": "application/json"}
+    response = requests.get(url_lookup, headers=headers)
     
-    if response.status_code == 200:
-        seq = ''.join(response.text.split()[1:])  # remove header
-        return seq
+    if response.status_code != 200:
+        return None
+    
+    data = response.json()
+    canonical_transcript = data.get("canonical_transcript")
+    canonical_transcript = canonical_transcript.split(".")[0]
+    
+    if not canonical_transcript:
+        raise Exception(f"No canonical transcript found for gene ID: {gene_id}")
+    
+    # Step 2: Get the protein sequence for the canonical transcript
+    url_sequence = f"https://rest.ensembl.org/sequence/id/{canonical_transcript}"
+    headers = {"Content-Type": "application/json"}
+    response_sequence = requests.get(url_sequence, headers=headers)
+    
+    if response_sequence.status_code == 200:
+        return response_sequence.json()['seq']
     else:
         return None
 
 
-def get_seqs(tf_subset: pd.DataFrame):
+def get_seqs(tf_df: pd.DataFrame) -> pd.DataFrame:
     """
     Return dataframe with sequences from ensembl.
 
@@ -94,10 +109,32 @@ def get_seqs(tf_subset: pd.DataFrame):
         pd.DataFrame: TF dataframe with sequences.
     """
 
-    tf_subset["Sequence"] = tf_subset["DBID"].apply(fetch_protein_sequence)
-    tf_subset = tf_subset[tf_subset["Sequence"].notna()]
+    tf_df["Sequence"] = tf_df["DBID"].apply(fetch_canonical_protein)
+    tf_df = tf_df[tf_df["Sequence"].notna()]
     
-    return tf_subset
+    return tf_df
+
+
+def get_motifs(tf_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Return dataframe with motifs from cisbp PWMs.
+
+    Args:
+        tf_df (pd.DataFrame): TF dataframe.
+
+    Returns:
+        pd.DataFrame: TF dataframe with motifs.
+    """
+
+    for tf in tf_df["Motif_ID"]:
+        pwm = pd.read_csv(f"data/cisbp/pwms_all_motifs/{tf}.txt", sep="\t")
+
+        # Take base with highest probability
+        pwm.drop(columns=["Pos"], inplace=True)
+        motif = pwm.idxmax(axis=1).str.cat()
+        tf_df.loc[tf_df["Motif_ID"] == tf, "Motif"] = motif
+
+    return tf_df
     
 
 def main():
@@ -106,9 +143,10 @@ def main():
 
     tfs = define_tfs()
     tf_info = pd.read_csv("data/cisbp/TF_Information.txt", sep="\t")
-    tf_subset = subset_tfs(tf_info, tfs)
-    tf_subset = get_seqs(tf_subset)
-    tf_subset.to_csv("data/tf_subset.csv", index=False)
+    tf_df = subset_tfs(tf_info, tfs)
+    tf_df = get_seqs(tf_df)
+    tf_df = get_motifs(tf_df)
+    tf_df.to_csv("data/tf_df.csv", index=False)
     
 
 if __name__ == "__main__":
