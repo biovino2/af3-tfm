@@ -70,8 +70,6 @@ def fetch_canonical_protein(gene_id) -> str:
         str: Canonical protein sequence in FASTA format.
     """
 
-    print(gene_id)
-
     # Step 1: Get the canonical transcript
     url_lookup = f"https://rest.ensembl.org/lookup/id/{gene_id}"
     headers = {"Content-Type": "application/json"}
@@ -89,8 +87,9 @@ def fetch_canonical_protein(gene_id) -> str:
     
     # Step 2: Get the protein sequence for the canonical transcript
     url_sequence = f"https://rest.ensembl.org/sequence/id/{canonical_transcript}"
+    params = {"type": "protein"}
     headers = {"Content-Type": "application/json"}
-    response_sequence = requests.get(url_sequence, headers=headers)
+    response_sequence = requests.get(url_sequence, headers=headers, params=params)
     
     if response_sequence.status_code == 200:
         return response_sequence.json()['seq']
