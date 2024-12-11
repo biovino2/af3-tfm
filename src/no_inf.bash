@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=alphafold3                       # Job name
-#SBATCH --time=1:00:00                              # Time limit hrs:min:sec
-#SBATCH --mem=8G                                    # Total memory
+#SBATCH --time=3:00:00                              # Time limit hrs:min:sec
+#SBATCH --mem=16G                                   # Total memory
 #SBATCH --partition=cpu                             # Partition (queue) name
 #SBATCH --ntasks=1                                  # Number of tasks
 #SBATCH --cpus-per-task=8                           # Number of CPU cores per task
