@@ -63,12 +63,13 @@ def create_alphafold_job(name: str, sequences: list[dict]) -> dict:
     return job_data
 
 
-def get_json_data(tf_df: pd.DataFrame):
+def get_json_data(tf_df: pd.DataFrame, jobs_name: str):
     """
     Save a JSON file for each TF.
 
     Args:
         tf_df (pd.DataFrame): TF dataframe.
+        job_name (str): Name of the job set.
     """
 
     for _, row in tf_df.iterrows():
@@ -77,7 +78,7 @@ def get_json_data(tf_df: pd.DataFrame):
         tf_name = row['TF_Name']
         seq = row['Sequence']
         motif = row['Motif']
-        os.makedirs(f'data/jobs/motifs/{tf_name}', exist_ok=True)
+        os.makedirs(f'data/jobs/{jobs_name}/{tf_name}', exist_ok=True)
 
         # Create and save JSON data
         sequences = [
@@ -86,7 +87,7 @@ def get_json_data(tf_df: pd.DataFrame):
             {"dna": {"sequence": get_rev_comp(motif), "id": "C"}},
         ]
         alphafold_job = create_alphafold_job(tf_name, sequences)
-        with open(f'data/jobs/motifs/{tf_name}/{tf_name}.json', 'w') as f:
+        with open(f'data/jobs/{jobs_name}/{tf_name}/{tf_name}.json', 'w') as f:
             json.dump(alphafold_job, f, indent=4)
 
 
@@ -95,7 +96,7 @@ def main():
     """
 
     tf_df = pd.read_csv('data/tf_df.csv')
-    get_json_data(tf_df)
+    get_json_data(tf_df, 'motifs')
 
 
 if __name__ == "__main__":

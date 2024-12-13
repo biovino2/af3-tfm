@@ -1,0 +1,19 @@
+# slurm directives
+job_name: alphafold3                      # Job name
+time: "1:00:00"                           # Time limit hrs:min:sec
+mem: 16G                                  # Memory limit         
+partition: gpu                            # Partition (cpu or gpu)
+constraint: None                          # Constraint (type of gpu ex. h100, a100_80, h200, etc.)
+gpus: 1                                   # Number of gpus
+ntasks: 1                                 # Number of tasks
+cpus_per_task: 8                          # Number of cpus per task
+mail_type: ALL                            # Mail type (BEGIN, END, FAIL, ALL)
+mail_user: email@address                  # Mail user
+slurm_output: /path/to/slurm_output       # Path to slurm output file
+slurm_error: /path/to/slurm_error         # Path to slurm error file
+
+# alphafold3 config
+input_json: /path/to/input.json           # Path to input json file
+output_dir: /path/to/output_dir           # Path to output directory
+run_data_pipeline: True                   # Run data pipeline (True/False)
+run_inference: True                       # Run inference (True/False)
