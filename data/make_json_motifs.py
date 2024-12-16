@@ -1,5 +1,5 @@
 """
-Generate json files for alphafold.
+Generate json files for alphafold3 where each file contains a protein and it's motif.
 
 Ben Iovino  12/10/24    CZ-Biohub
 """
