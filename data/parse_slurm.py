@@ -117,6 +117,9 @@ def graph_results(results: dict):
     tf_lengths = []
     tf_df = pd.read_csv("data/tf_df.csv")
     for tf in results:
+        if '_' in tf:
+            regex = r"^[^_]+"
+            tf = re.search(regex, tf).group()
         seq = tf_df[tf_df['TF_Name'] == tf]['Sequence'].values[0]
         tf_lengths.append(len(seq))
 
