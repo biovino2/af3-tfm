@@ -25,7 +25,7 @@ def create_alphafold_job(name: str, sequences: list[dict]) -> dict:
 
     job_data = {
         "name": name,
-        "modelSeeds": [1],
+        "modelSeeds": [1, 2, 3, 4, 5],
         "sequences": [],
         "dialect": "alphafold3",
         "version": 1
