@@ -31,13 +31,14 @@ def get_config(config_file: str, **kwargs) -> dict:
     return config
 
 
-def cpu_config(path: str, job: str) -> dict:
+def cpu_config(path: str, job: str, **kwargs) -> dict:
     """
     Returns config for a CPU job.
 
     Args:
         path (str): The path to the JSON file.
         job (str): The job name.
+        **kwargs: Additional arguments to update the configuration dictionary.
 
     Returns:
         dict: The configuration dictionary.
@@ -50,22 +51,23 @@ def cpu_config(path: str, job: str) -> dict:
             mail_user="benjamin.iovino@czbiohub.org",
             slurm_output=f"{path}/{job}/slurm-%j.log",
             slurm_error=f"{path}/{job}/slurm-%j.log",
-            partition="cpu",
+            partition=kwargs["partition"],
             run_inference=False,
-            time="3:00:00",
+            time=kwargs["time"],
+            mem=kwargs["memory"]
         )
 
     return config
 
 
-def gpu_config(path: str, job: str, constraint: str = "None") -> dict:
+def gpu_config(path: str, job: str, **kwargs) -> dict:
     """
     Returns config for a GPU job.
 
     Args:
         path (str): The path to the JSON file.
         job (str): The job name.
-        constraint (str): The GPU constraint.
+        **kwargs: Additional arguments to update the configuration dictionary.
 
     Returns:
         dict: The configuration dictionary.
@@ -86,14 +88,15 @@ def gpu_config(path: str, job: str, constraint: str = "None") -> dict:
             mail_user="benjamin.iovino@czbiohub.org",
             slurm_output=f"{path}/{job}/slurm-%j.log",
             slurm_error=f"{path}/{job}/slurm-%j.log",
-            partition="gpu",
+            partition=kwargs["partition"],
             run_data_pipeline=run_data_pipeline,
-            time="3:00:00"
+            time=kwargs["time"],
+            mem=kwargs["memory"],
         )
     
     # Specific GPU options
-    if constraint != "None":
-        config["constraint"] = constraint
+    if kwargs["constraint"] != "None":
+        config["constraint"] = kwargs["constraint"]
 
     return config
 
@@ -123,7 +126,7 @@ def generate_slurm_script(config: dict[str]) -> str:
 """
     
     # GPU specific options
-    if config["partition"] == "gpu":
+    if config["partition"] == "gpu" or config["partition"] == "preempted":
         slurm_script += f"#SBATCH --gpus={config['gpus']}\n"
     if config["constraint"] != "None":
         slurm_script += f"#SBATCH --constraint={config['constraint']}\n"
@@ -148,21 +151,44 @@ def main():
     """
     """
 
-    partition = 'gpu'
-    path = "data/jobs/motifs_two"
+    # Parameters
+    path = "data/jobs/all-vs-all-5seed"
+    job_type = "gpu"
+    partition = "preempted"
+    constraint = "[h100|a100_80|h200]"
+    time = "3:00:00"
+    memory = "70G"
+
+    # Loop through jobs in directory
     for job in os.listdir(path):
 
-        # Config based on cpu/gpu
-        if partition == 'cpu':
-            config = cpu_config(path, job)
-        if partition == 'gpu':
-            config = gpu_config(path, job)
+        if not job.startswith("kmt2cb"):
+            continue
+
+        if job_type == 'cpu':
+            config = cpu_config(
+                path,
+                job,
+                partition=partition,
+                time=time,
+                memory=memory,
+            )
+            
+        if job_type == 'gpu':
+            config = gpu_config(
+                path,
+                job,
+                partition=partition,
+                constraint=constraint,
+                time=time,
+                memory=memory,
+            )
 
         # Submit slurm script
         slurm_script = generate_slurm_script(config)
         with open(f"{path}/{job}/run_af3_{partition}.sh", "w") as f:
             f.write(slurm_script)
-        sp.run(["sbatch", f"{path}/{job}/run_af3_{partition}.sh"])
+        sp.run(["sbatch", f"{path}/{job}/run_af3_{job_type}.sh"])
 
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ def graph_all_vs_all():
     Graph the ipTM scores for all TFs against all motifs.
     """
 
-    path = 'data/jobs/all-vs-all'
+    path = 'data/jobs/all-vs-all-5seed'
     results = {}
     for job in os.listdir(path):
         result_file = f'{path}/{job}/{job}_summary_confidences.json'
@@ -77,7 +77,9 @@ def graph_all_vs_all():
     plt.ylabel('TF')
     plt.xlabel('Motif')
     plt.title('ipTM Confidence Scores')
-    plt.savefig('data/all_vs_all.pdf', bbox_inches='tight')
+    for i in range(18):  # Border around diagonal squares
+        plt.gca().add_patch(plt.Rectangle((i, i), 1, 1, fill=False, edgecolor='black', lw=2))
+    plt.savefig('data/all_vs_all-5seed.pdf', bbox_inches='tight')
 
 
 def main():
